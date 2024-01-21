@@ -1,4 +1,4 @@
-# Terrform
+# Terraform - Proxmox Image Clone for Kubernetes
 
 ### To Do
 Create credentials.auto.tfvars and add below variables to it
