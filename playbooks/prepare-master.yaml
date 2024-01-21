@@ -1,0 +1,74 @@
+- hosts: kubemaster
+  name: "Playbook"
+  remote_user: kubemaster
+
+  tasks:
+    - name: Update
+      ansible.builtin.apt:
+          name: "*"
+          state: latest
+
+    - name: Install Required Packages
+      ansible.builtin.apt:
+        pkg:
+        - systemd-resolved
+
+    - name: Check directories
+      stat:
+        path: '{{ k3s_path }}'
+      register: directory_data
+
+    - debug: var=directory_data.stat.exists
+
+    - name: Create directory if it doesn't already exist
+      file:
+        path: '{{ k3s_path }}'
+        state: directory
+      when: not directory_data.stat.exists
+    
+    - name: Render Template Config
+      ansible.builtin.template:
+        src: configs/config.j2
+        dest: '{{ k3s_path }}/config.yaml'
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Replace DNS
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#DNS='
+        line: 'DNS={{ dns }}'
+    
+    - name: Replace Fallback DNS
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#FallbackDNS='
+        line: 'FallbackDNS={{ fallback_dns }}'
+        
+
+    - name: Render Template Registry
+      ansible.builtin.template:
+        src: configs/registries.j2
+        dest: '{{ k3s_path }}/registries.yaml'
+
+    - name: Restart service Systemd Resolved Service
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: true
+        name: systemd-resolved
+
+    - name: Install K3S
+      ansible.builtin.shell:
+        cmd: curl -sfL https://get.k3s.io | sh -s -
+        chdir: ~
+
+    - name: Specifying a path directly
+      ansible.builtin.fetch:
+        src: '{{ k3s_path }}/k3s.yaml'
+        dest: ./prefix-{{ inventory_hostname }}
+    
+    - name: Restart K3S Service
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: k3s

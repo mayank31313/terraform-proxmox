@@ -1,0 +1,11 @@
+mirrors:
+  registry.docker.iorcloud.co.in.internal:
+    endpoint:
+      - "http://registry.docker.iorcloud.co.in.internal"
+configs:
+  "registry.docker.iorcloud.co.in.internal":
+    auth:
+      username: {{ registry_username }} # this is the registry username
+      password: {{ registry_password }} # this is the registry password
+    tls:
+      insecure_skip_verify: true
